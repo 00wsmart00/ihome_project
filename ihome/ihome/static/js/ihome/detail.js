@@ -39,7 +39,7 @@ $(document).ready(function () {
             // 3. 处理底部的预订按钮，如果当前用户不是房东的话，就显示预订按钮
             if (resp.data.user_id != resp.data.house.user_id) {
                 $(".book-house").show()
-                $(".book-house").attr("href", "/booking.html?hid=" + houseId)
+                $(".book-house").attr("href", "/static/html/booking.html?hid=" + houseId)
             }
         }
     })

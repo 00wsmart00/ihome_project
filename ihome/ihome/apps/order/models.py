@@ -23,8 +23,8 @@ class Order(BaseModel):
     begin_date = models.DateTimeField(null=False, verbose_name='预订的起始时间')
     end_date = models.DateTimeField(null=False, verbose_name='预订的结束时间')
     days = models.SmallIntegerField(null=False, verbose_name='预订的总天数')
-    house_price = models.SmallIntegerField(null=False, verbose_name='房屋的单价')
-    amount = models.SmallIntegerField(null=False, verbose_name='订单的总金额')
+    house_price = models.IntegerField(null=False, verbose_name='房屋的单价')
+    amount = models.IntegerField(null=False, verbose_name='订单的总金额')
     comment = models.TextField(verbose_name='订单的评论信息或拒单原因')
     status = models.CharField(max_length=50, choices=ORDER_STATUS_CHOICES, default='WAIT_ACCEPT', verbose_name="订单状态")
 

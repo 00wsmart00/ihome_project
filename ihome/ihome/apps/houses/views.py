@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django import http
@@ -8,6 +9,7 @@ from django.views import View
 
 from address.models import Area
 from houses.models import House, Facility, HouseImage
+from houses.utils import house_to_dict
 from ihome.utils.response_code import RET
 from ihome.utils.upload_image import client
 from order.models import Order
@@ -40,16 +42,20 @@ class HouseView(View):
         data = []
         for house in houses:
             house_list = dict()
+            create_time = house.create_time
+            crtime = create_time.strftime("%Y-%m-%d")
             house_list['address'] = house.address
-            house_list['area_name '] = house.area.name
-            house_list['ctime'] = house.create_time
+            house_list['area_name'] = house.area.name
+            house_list['ctime'] = crtime
             house_list['house_id'] = house.id
             house_list['img_url'] = house.index_image_url
+            house_list['order_count'] = house.order_count
             house_list['price'] = house.price
             house_list['room_count'] = house.room_count
             house_list['title'] = house.title
             house_list['user_avatar'] = request.user.avatar_url
             data.append(house_list)
+        print(data)
         return http.JsonResponse({
             'data': data,
             'errmsg': 'Ok',
@@ -131,9 +137,8 @@ class HouseImageView(View):
             })
         # 保存图片的地址
         try:
-            house_img = HouseImage.objects.filter(house_id=house_id)
-            house_img.url = url
-            house_img.save()
+            HouseImage.objects.create(house_id=house_id, url=url)
+
         except Exception as e:
             print(e)
             return http.JsonResponse({
@@ -153,44 +158,75 @@ class HouseDetailView(View):
 
     def get(self, request, house_id):
         """展示房间的详情信息"""
-        data = dict()
-        house = House.objects.get(id=house_id)
-        order = Order.objects.get(house_id=house_id)
-        house_dict = dict()
-        house_dict['acreage'] = house.acreage
-        house_dict['address'] = house.address
-        house_dict['beds'] = house.beds
-        house_dict['capacity'] = house.capacity
-        house_dict['deposit'] = house.deposit
-        house_dict['img_urls'] = [house.index_image_url]
-        house_dict['max_days'] = house.max_days
-        house_dict['min_days'] = house.min_days
-        house_dict['price'] = house.price
-        house_dict['facilities'] = []
-        house_dict['room_count'] = house.room_count
-        house_dict['title'] = house.title
-        house_dict['unit'] = house.unit
-        house_dict['user_avatar'] = house.user.avatar_url
-        house_dict['user_id'] = house.user_id
-        house_dict['user_name'] = house.user.username
-        house_dict['comments'] = [{
-            "comment":order.comment,
-            "ctime":order.create_time,
-            "user_name": order.user.username
-        }]
-        facilities = house.facilities.all()
-        for facility in facilities:
-            house_dict['facilities'].append(facility.id)
+        # data = dict()
+        # img_list = []
+        # try:
+        #     house = House.objects.get(id=house_id)
+        #     order = Order.objects.get(house_id=house_id)
+        #     create_time = order.create_time
+        #     crtime = create_time.strftime("%Y-%m-%d")
+        #     house_imgs = HouseImage.objects.filter(house_id=house_id)
+        # except Exception as e:
+        #     print(e)
+        #     return http.JsonResponse({
+        #         'errno': RET.DBERR,
+        #         'errmsg': '房屋不存在'
+        #     })
+        # for house_img in house_imgs:
+        #     img_list.append(house_img.url)
+        # house_dict = dict()
+        # house_dict['acreage'] = house.acreage
+        # house_dict['address'] = house.address
+        # house_dict['beds'] = house.beds
+        # house_dict['capacity'] = house.capacity
+        # house_dict['deposit'] = house.deposit
+        # house_dict['img_urls'] = img_list
+        # house_dict['max_days'] = house.max_days
+        # house_dict['min_days'] = house.min_days
+        # house_dict['price'] = house.price
+        # house_dict['facilities'] = []
+        # house_dict['room_count'] = house.room_count
+        # house_dict['title'] = house.title
+        # house_dict['unit'] = house.unit
+        # house_dict['user_avatar'] = house.user.avatar_url
+        # house_dict['user_id'] = house.user_id
+        # house_dict['user_name'] = house.user.username
+        # house_dict['comments'] = [
+        #     {"comment": order.comment,
+        #      "ctime": crtime,
+        #      "user_name": order.user.username}
+        # ]
+        # try:
+        #     facilities = house.facilities.all()
+        # except Exception as e:
+        #     print(e)
+        #     return http.JsonResponse({
+        #         'errno': RET.DBERR,
+        #         'errmsg': '查询数据失败'
+        #     })
+        # for facility in facilities:
+        #     house_dict['facilities'].append(facility.id)
+        #
+        # print(data)
+        # data['house'] = house_dict
+        # data['user_id'] = request.user.id if request.user.is_authenticated else -1
+        # return http.JsonResponse({
+        #     "data": data,
+        #     "errmsg": "OK",
+        #     "errno": '0'
+        #
+        # })
+        try:
+            house = House.objects.get(id=house_id)
+        except Exception as e:
+            print(e)
+            return http.JsonResponse({'errno': RET.DBERR, 'errmsg': "房屋信息查询失败"})
 
-        print(data)
-        data['house'] = house_dict
-        data['user_id'] = request.user.id if request.user.is_authenticated else -1
-        return http.JsonResponse({
-            "data": data,
-            "errmsg": "OK",
-            "errno": '0'
+        house_dict = house_to_dict(house)
 
-        })
+        # 返回数据
+        return http.JsonResponse(
+            {'errno': RET.OK, 'errmsg': "OK", 'data': {"user_id": request.user.id, "house": house_dict}})
 
 
 class IndexHouseView(View):
@@ -216,6 +252,7 @@ class IndexHouseView(View):
 
 class IndexHouseSearchView(View):
     """首页房源搜索"""
+
     def get(self, request):
         # 1.接受参数
         json_dict = request.GET
@@ -250,4 +287,3 @@ class IndexHouseSearchView(View):
             'errmsg': '请求成功',
             'errno': '0'
         })
-

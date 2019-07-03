@@ -98,7 +98,7 @@ class OrderView(View):
                     "errno": RET.DBERR
                 })
 
-            return http.JsonResponse({
+        return http.JsonResponse({
                 "data": data,
                 "errmsg": "OK",
                 "errno": RET.OK

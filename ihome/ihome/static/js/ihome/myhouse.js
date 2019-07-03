@@ -6,6 +6,7 @@ $(document).ready(function(){
                 // 如果用户已实名认证,那么就去请求之前发布的房源
                 $.get("/api/v1.0/user/houses/", function (resp) {
                     if (resp.errno == "0") {
+                        console.log(resp.data)
                         $("#houses-list").html(template("houses-list-tmpl", {"houses": resp.data}))
                     }
                 })
